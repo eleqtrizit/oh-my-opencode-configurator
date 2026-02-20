@@ -1,0 +1,792 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>OpenCode Configer</title>
+  <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg: #0f1117;
+      --surface: #1a1d27;
+      --surface2: #22263a;
+      --border: #2e3348;
+      --accent: #6c8aff;
+      --accent-hover: #8fa4ff;
+      --danger: #ff5f5f;
+      --success: #4caf80;
+      --warn: #e8a24b;
+      --text: #e2e4ef;
+      --text-muted: #8890a8;
+      --radius: 8px;
+      --font: 'Inter', system-ui, sans-serif;
+    }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: var(--font);
+      font-size: 14px;
+      line-height: 1.6;
+      min-height: 100vh;
+    }
+
+    header {
+      background: var(--surface);
+      border-bottom: 1px solid var(--border);
+      padding: 0 24px;
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      height: 56px;
+      position: sticky;
+      top: 0;
+      z-index: 100;
+    }
+
+    header h1 {
+      font-size: 16px;
+      font-weight: 600;
+      color: var(--accent);
+      letter-spacing: 0.02em;
+    }
+
+    .tab-bar {
+      display: flex;
+      gap: 4px;
+      margin-left: auto;
+    }
+
+    .tab-btn {
+      background: none;
+      border: 1px solid transparent;
+      color: var(--text-muted);
+      padding: 6px 14px;
+      border-radius: var(--radius);
+      cursor: pointer;
+      font-size: 13px;
+      transition: all 0.15s;
+    }
+
+    .tab-btn:hover { color: var(--text); background: var(--surface2); }
+    .tab-btn.active { color: var(--accent); border-color: var(--accent); background: rgba(108,138,255,0.1); }
+
+    .main { max-width: 1100px; margin: 0 auto; padding: 24px 16px; }
+
+    .section { margin-bottom: 32px; }
+
+    .section-title {
+      font-size: 12px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: var(--text-muted);
+      margin-bottom: 12px;
+    }
+
+    .card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      overflow: hidden;
+    }
+
+    .card-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 12px 16px;
+      border-bottom: 1px solid var(--border);
+      background: var(--surface2);
+    }
+
+    .card-header h3 { font-size: 14px; font-weight: 600; }
+
+    .card-body { padding: 16px; }
+
+    .provider-url {
+      font-size: 12px;
+      color: var(--text-muted);
+      font-family: monospace;
+      margin-top: 2px;
+    }
+
+    /* Buttons */
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 6px 14px;
+      border-radius: var(--radius);
+      border: 1px solid transparent;
+      cursor: pointer;
+      font-size: 13px;
+      font-weight: 500;
+      transition: all 0.15s;
+      white-space: nowrap;
+    }
+
+    .btn:disabled { opacity: 0.45; cursor: not-allowed; }
+
+    .btn-primary { background: var(--accent); color: #fff; border-color: var(--accent); }
+    .btn-primary:hover:not(:disabled) { background: var(--accent-hover); border-color: var(--accent-hover); }
+
+    .btn-outline { background: transparent; color: var(--text); border-color: var(--border); }
+    .btn-outline:hover:not(:disabled) { border-color: var(--accent); color: var(--accent); }
+
+    .btn-danger { background: transparent; color: var(--danger); border-color: var(--danger); }
+    .btn-danger:hover:not(:disabled) { background: rgba(255,95,95,0.1); }
+
+    .btn-success { background: var(--success); color: #fff; border-color: var(--success); }
+    .btn-success:hover:not(:disabled) { filter: brightness(1.1); }
+
+    .btn-sm { padding: 4px 10px; font-size: 12px; }
+
+    /* Model list */
+    .model-list { display: flex; flex-direction: column; gap: 2px; margin-top: 12px; }
+
+    .model-row {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 8px 12px;
+      border-radius: 6px;
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      transition: border-color 0.15s;
+    }
+
+    .model-row.enabled { border-color: rgba(108,138,255,0.4); }
+
+    .model-name {
+      flex: 1;
+      font-family: monospace;
+      font-size: 13px;
+      word-break: break-all;
+    }
+
+    /* Toggle */
+    .toggle {
+      position: relative;
+      width: 38px;
+      height: 20px;
+      flex-shrink: 0;
+    }
+
+    .toggle input { opacity: 0; width: 0; height: 0; }
+
+    .toggle-slider {
+      position: absolute;
+      inset: 0;
+      background: var(--border);
+      border-radius: 20px;
+      cursor: pointer;
+      transition: background 0.2s;
+    }
+
+    .toggle-slider::before {
+      content: '';
+      position: absolute;
+      left: 3px;
+      top: 3px;
+      width: 14px;
+      height: 14px;
+      background: #fff;
+      border-radius: 50%;
+      transition: transform 0.2s;
+    }
+
+    .toggle input:checked + .toggle-slider { background: var(--accent); }
+    .toggle input:checked + .toggle-slider::before { transform: translateX(18px); }
+
+    /* Form rows */
+    .form-row {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 10px 0;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .form-row:last-child { border-bottom: none; }
+
+    .form-label {
+      width: 200px;
+      font-size: 13px;
+      color: var(--text-muted);
+      flex-shrink: 0;
+      font-family: monospace;
+    }
+
+    select {
+      flex: 1;
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      color: var(--text);
+      padding: 6px 10px;
+      border-radius: 6px;
+      font-size: 13px;
+      font-family: monospace;
+      appearance: none;
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%238890a8' d='M6 8L1 3h10z'/%3E%3C/svg%3E");
+      background-repeat: no-repeat;
+      background-position: right 10px center;
+      padding-right: 28px;
+      cursor: pointer;
+    }
+
+    select:focus { outline: none; border-color: var(--accent); }
+
+    input[type="text"] {
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      color: var(--text);
+      padding: 8px 12px;
+      border-radius: 6px;
+      font-size: 13px;
+      font-family: var(--font);
+      width: 240px;
+    }
+
+    input[type="text"]:focus { outline: none; border-color: var(--accent); }
+
+    /* Config sets table */
+    .sets-table { width: 100%; border-collapse: collapse; }
+    .sets-table th {
+      text-align: left;
+      padding: 10px 12px;
+      font-size: 12px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      color: var(--text-muted);
+      border-bottom: 1px solid var(--border);
+    }
+
+    .sets-table td {
+      padding: 10px 12px;
+      border-bottom: 1px solid var(--border);
+      vertical-align: middle;
+    }
+
+    .sets-table tr:last-child td { border-bottom: none; }
+    .sets-table tr:hover td { background: var(--surface2); }
+
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      padding: 2px 8px;
+      border-radius: 12px;
+      font-size: 11px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+
+    .badge-active { background: rgba(76,175,128,0.15); color: var(--success); border: 1px solid var(--success); }
+
+    .action-bar {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 16px;
+      background: var(--surface2);
+      border-top: 1px solid var(--border);
+      border-radius: 0 0 var(--radius) var(--radius);
+    }
+
+    .toast {
+      position: fixed;
+      bottom: 24px;
+      right: 24px;
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 12px 18px;
+      font-size: 13px;
+      z-index: 999;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      box-shadow: 0 4px 20px rgba(0,0,0,0.4);
+      max-width: 360px;
+    }
+
+    .toast.success { border-color: var(--success); color: var(--success); }
+    .toast.error { border-color: var(--danger); color: var(--danger); }
+
+    .spinner {
+      width: 16px;
+      height: 16px;
+      border: 2px solid var(--border);
+      border-top-color: var(--accent);
+      border-radius: 50%;
+      animation: spin 0.7s linear infinite;
+      flex-shrink: 0;
+    }
+
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    .empty-state {
+      text-align: center;
+      color: var(--text-muted);
+      padding: 32px 16px;
+      font-size: 13px;
+    }
+
+    .provider-grid { display: flex; flex-direction: column; gap: 16px; }
+
+    .flex-row { display: flex; align-items: center; gap: 10px; }
+    .flex-1 { flex: 1; }
+
+    [x-cloak] { display: none !important; }
+  </style>
+</head>
+<body x-data="app()" x-init="init()" x-cloak>
+
+  <header>
+    <h1>⚙ OpenCode Configer</h1>
+    <div class="tab-bar">
+      <button class="tab-btn" :class="{ active: tab === 'providers' }" @click="tab = 'providers'">Providers</button>
+      <button class="tab-btn" :class="{ active: tab === 'omc' }" @click="tab = 'omc'">oh-my-opencode</button>
+      <button class="tab-btn" :class="{ active: tab === 'sets' }" @click="tab = 'sets'">Config Sets</button>
+    </div>
+  </header>
+
+  <div class="main">
+
+    <!-- ======================================================= PROVIDERS TAB -->
+    <div x-show="tab === 'providers'">
+      <div class="section">
+        <div class="section-title">Custom Providers (opencode config.json)</div>
+        <div class="provider-grid">
+
+          <template x-if="Object.keys(opencodeConfig.provider || {}).length === 0">
+            <div class="empty-state">No providers configured. Active config is empty or missing.</div>
+          </template>
+
+          <template x-for="[pName, pCfg] in Object.entries(opencodeConfig.provider || {})" :key="pName">
+            <div class="card">
+              <div class="card-header">
+                <div>
+                  <h3 x-text="pName"></h3>
+                  <div class="provider-url" x-text="pCfg.options?.baseURL || '(no baseURL — standard provider)'"></div>
+                </div>
+                <div class="flex-row" x-show="!!pCfg.options?.baseURL">
+                  <button
+                    class="btn btn-outline btn-sm"
+                    :disabled="fetchingModels[pName]"
+                    @click="fetchModels(pName, pCfg)"
+                  >
+                    <span x-show="fetchingModels[pName]" class="spinner"></span>
+                    <span x-text="fetchingModels[pName] ? 'Fetching…' : 'Refresh Models'"></span>
+                  </button>
+                </div>
+              </div>
+
+              <div class="card-body">
+                <!-- No baseURL: read-only note -->
+                <template x-if="!pCfg.options?.baseURL">
+                  <div style="color: var(--text-muted); font-size:13px;">
+                    Standard provider — model list is managed by opencode itself.
+                  </div>
+                </template>
+
+                <!-- Models list -->
+                <template x-if="!!pCfg.options?.baseURL">
+                  <div>
+                    <template x-if="(providerModels[pName] || []).length === 0 && !fetchingModels[pName]">
+                      <div style="color: var(--text-muted); font-size:13px;">
+                        Click "Fetch Models" to discover available models, or they will show below if already in config.
+                      </div>
+                    </template>
+
+                    <!-- Existing config models not yet fetched from API -->
+                    <template x-if="(providerModels[pName] || []).length === 0 && !fetchingModels[pName] && Object.keys(pCfg.models || {}).length > 0">
+                      <div class="model-list">
+                        <template x-for="mId in Object.keys(pCfg.models || {})" :key="mId">
+                          <div class="model-row enabled">
+                            <span class="model-name" x-text="mId"></span>
+                            <label class="toggle">
+                              <input type="checkbox" :checked="true" @change="toggleModel(pName, mId, $event.target.checked)" />
+                              <span class="toggle-slider"></span>
+                            </label>
+                          </div>
+                        </template>
+                      </div>
+                    </template>
+
+                    <!-- Models from /v1/models fetch -->
+                    <div class="model-list" x-show="(providerModels[pName] || []).length > 0">
+                      <template x-for="m in (providerModels[pName] || [])" :key="m.id">
+                        <div class="model-row" :class="{ enabled: isModelEnabled(pName, m.id) }">
+                          <span class="model-name" x-text="m.id"></span>
+                          <label class="toggle">
+                            <input type="checkbox"
+                              :checked="isModelEnabled(pName, m.id)"
+                              @change="toggleModel(pName, m.id, $event.target.checked)"
+                            />
+                            <span class="toggle-slider"></span>
+                          </label>
+                        </div>
+                      </template>
+                    </div>
+                  </div>
+                </template>
+              </div>
+            </div>
+          </template>
+        </div>
+      </div>
+
+      <!-- Apply / Save strip -->
+      <div class="card" style="margin-top:8px;">
+        <div class="action-bar">
+          <span style="color:var(--text-muted); font-size:13px; flex:1;">
+            Changes are in-memory until you Apply or save a set.
+          </span>
+          <button class="btn btn-success" @click="applyNow()">Apply Active Configs</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- ===================================================== OH-MY-OPENCODE TAB -->
+    <div x-show="tab === 'omc'">
+      <div class="section">
+        <div class="section-title">oh-my-opencode.json — Model Assignments</div>
+        <div class="card">
+          <div class="card-header"><h3>Global Default Model</h3></div>
+          <div class="card-body">
+            <div class="form-row">
+              <span class="form-label">model</span>
+              <select x-model="omcConfig.model">
+                <option value="">(none)</option>
+                <template x-for="m in enabledModelList" :key="m">
+                  <option :value="m" x-text="m"></option>
+                </template>
+              </select>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Agents -->
+      <div class="section">
+        <div class="section-title">Agents</div>
+        <div class="card">
+          <template x-if="Object.keys(omcConfig.agents || {}).length === 0">
+            <div class="empty-state">No agents configured in oh-my-opencode.json.</div>
+          </template>
+          <div class="card-body" style="padding:0 16px;">
+            <template x-for="[agentName, agentCfg] in Object.entries(omcConfig.agents || {})" :key="agentName">
+              <div class="form-row">
+                <span class="form-label" x-text="agentName"></span>
+                <select x-model="omcConfig.agents[agentName].model">
+                  <option value="">(inherit default)</option>
+                  <template x-for="m in enabledModelList" :key="m">
+                    <option :value="m" x-text="m"></option>
+                  </template>
+                </select>
+              </div>
+            </template>
+          </div>
+        </div>
+      </div>
+
+      <!-- Categories -->
+      <div class="section">
+        <div class="section-title">Categories</div>
+        <div class="card">
+          <template x-if="Object.keys(omcConfig.categories || {}).length === 0">
+            <div class="empty-state">No categories configured in oh-my-opencode.json.</div>
+          </template>
+          <div class="card-body" style="padding:0 16px;">
+            <template x-for="[catName, catCfg] in Object.entries(omcConfig.categories || {})" :key="catName">
+              <div class="form-row">
+                <span class="form-label" x-text="catName"></span>
+                <select x-model="omcConfig.categories[catName].model">
+                  <option value="">(inherit default)</option>
+                  <template x-for="m in enabledModelList" :key="m">
+                    <option :value="m" x-text="m"></option>
+                  </template>
+                </select>
+              </div>
+            </template>
+          </div>
+        </div>
+      </div>
+
+      <div class="card" style="margin-top:8px;">
+        <div class="action-bar">
+          <span style="color:var(--text-muted); font-size:13px; flex:1;">
+            Changes are in-memory until you Apply or save a set.
+          </span>
+          <button class="btn btn-success" @click="applyNow()">Apply Active Configs</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- ======================================================= CONFIG SETS TAB -->
+    <div x-show="tab === 'sets'">
+      <div class="section">
+        <div class="section-title">Save Current State as Named Set</div>
+        <div class="card">
+          <div class="card-body">
+            <div class="flex-row">
+              <input type="text" x-model="newSetName" placeholder="set-name" @keyup.enter="saveSet()" />
+              <button class="btn btn-primary" :disabled="!newSetName.trim()" @click="saveSet()">Save Set</button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="section">
+        <div class="section-title">Saved Config Sets</div>
+        <div class="card">
+          <template x-if="sets.length === 0">
+            <div class="empty-state">No saved sets yet.</div>
+          </template>
+          <template x-if="sets.length > 0">
+            <table class="sets-table">
+              <thead>
+                <tr>
+                  <th>Name</th>
+                  <th>Files</th>
+                  <th>Status</th>
+                  <th>Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                <template x-for="s in sets" :key="s.name">
+                  <tr>
+                    <td style="font-family:monospace; font-weight:600;" x-text="s.name"></td>
+                    <td style="color:var(--text-muted); font-size:12px;">
+                      <span x-show="s.has_opencode">config.json</span>
+                      <span x-show="s.has_opencode && s.has_oh_my_opencode"> + </span>
+                      <span x-show="s.has_oh_my_opencode">oh-my-opencode.json</span>
+                    </td>
+                    <td>
+                      <span class="badge badge-active" x-show="s.name === activeSetName">Active</span>
+                    </td>
+                    <td>
+                      <div class="flex-row">
+                        <button class="btn btn-outline btn-sm" @click="loadSet(s.name)">Load</button>
+                        <button class="btn btn-success btn-sm" @click="applySet(s.name)">Apply</button>
+                        <button class="btn btn-danger btn-sm" @click="deleteSet(s.name)">Delete</button>
+                      </div>
+                    </td>
+                  </tr>
+                </template>
+              </tbody>
+            </table>
+          </template>
+        </div>
+      </div>
+    </div>
+
+  </div><!-- /.main -->
+
+  <!-- Toast notification -->
+  <div class="toast" :class="toast.type" x-show="toast.visible" x-transition style="display:none">
+    <span x-text="toast.message"></span>
+  </div>
+
+  <script>
+    function app() {
+      return {
+        tab: 'providers',
+        opencodeConfig: { provider: {} },
+        omcConfig: { model: '', agents: {}, categories: {} },
+        providerModels: {},   // { providerName: [{id, enabled}] }
+        fetchingModels: {},   // { providerName: bool }
+        sets: [],
+        activeSetName: null,
+        newSetName: '',
+        toast: { visible: false, message: '', type: 'success', timer: null },
+
+        async init() {
+          await Promise.all([this.loadActiveConfigs(), this.refreshSets()]);
+          await this.fetchAllProviderModels();
+        },
+
+        async fetchAllProviderModels() {
+          const providers = Object.entries(this.opencodeConfig.provider || {});
+          await Promise.all(
+            providers
+              .filter(([, pCfg]) => !!pCfg.options?.baseURL)
+              .map(([pName, pCfg]) => this.fetchModels(pName, pCfg))
+          );
+        },
+
+        async loadActiveConfigs() {
+          try {
+            const [cfg, omc] = await Promise.all([
+              fetch('/api/config').then(r => r.json()),
+              fetch('/api/oh-my-opencode').then(r => r.json()),
+            ]);
+            this.opencodeConfig = cfg || { provider: {} };
+            if (!this.opencodeConfig.provider) this.opencodeConfig.provider = {};
+            this.omcConfig = omc || { model: '', agents: {}, categories: {} };
+            if (!this.omcConfig.agents) this.omcConfig.agents = {};
+            if (!this.omcConfig.categories) this.omcConfig.categories = {};
+          } catch (e) {
+            this.showToast('Failed to load configs: ' + e.message, 'error');
+          }
+        },
+
+        async refreshSets() {
+          try {
+            this.sets = await fetch('/api/sets').then(r => r.json());
+          } catch (e) {
+            this.sets = [];
+          }
+        },
+
+        // Build list of enabled model IDs in "provider/model" format
+        get enabledModelList() {
+          const list = [];
+          for (const [pName, pCfg] of Object.entries(this.opencodeConfig.provider || {})) {
+            for (const mId of Object.keys(pCfg.models || {})) {
+              list.push(`${pName}/${mId}`);
+            }
+          }
+          return list;
+        },
+
+        isModelEnabled(providerName, modelId) {
+          return !!(this.opencodeConfig.provider?.[providerName]?.models?.[modelId] !== undefined);
+        },
+
+        toggleModel(providerName, modelId, enabled) {
+          if (!this.opencodeConfig.provider) this.opencodeConfig.provider = {};
+          if (!this.opencodeConfig.provider[providerName]) return;
+          if (!this.opencodeConfig.provider[providerName].models) {
+            this.opencodeConfig.provider[providerName].models = {};
+          }
+          if (enabled) {
+            this.opencodeConfig.provider[providerName].models[modelId] = { options: {} };
+          } else {
+            delete this.opencodeConfig.provider[providerName].models[modelId];
+          }
+          // Trigger Alpine reactivity
+          this.opencodeConfig = { ...this.opencodeConfig };
+        },
+
+        async fetchModels(providerName, pCfg) {
+          this.fetchingModels = { ...this.fetchingModels, [providerName]: true };
+          try {
+            const body = {
+              base_url: pCfg.options.baseURL,
+              api_key: pCfg.options.apiKey || null,
+            };
+            const resp = await fetch('/api/providers/models', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify(body),
+            });
+            if (!resp.ok) {
+              const err = await resp.json();
+              throw new Error(err.detail || resp.statusText);
+            }
+            const models = await resp.json();
+            this.providerModels = { ...this.providerModels, [providerName]: models };
+            this.showToast(`Fetched ${models.length} models from ${providerName}`, 'success');
+          } catch (e) {
+            this.showToast(`Failed to fetch models for ${providerName}: ${e.message}`, 'error');
+          } finally {
+            this.fetchingModels = { ...this.fetchingModels, [providerName]: false };
+          }
+        },
+
+        async applyNow() {
+          try {
+            const resp = await fetch('/api/apply', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                opencode_config: this.opencodeConfig,
+                oh_my_opencode_config: this.omcConfig,
+              }),
+            });
+            if (!resp.ok) throw new Error((await resp.json()).detail);
+            this.showToast('Configs applied to ~/.config/opencode/', 'success');
+            await this.refreshSets();
+            await this.fetchAllProviderModels();
+          } catch (e) {
+            this.showToast('Apply failed: ' + e.message, 'error');
+          }
+        },
+
+        async saveSet() {
+          const name = this.newSetName.trim();
+          if (!name) return;
+          try {
+            const resp = await fetch(`/api/sets/${encodeURIComponent(name)}/save`, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                opencode_config: this.opencodeConfig,
+                oh_my_opencode_config: this.omcConfig,
+              }),
+            });
+            if (!resp.ok) throw new Error((await resp.json()).detail);
+            this.newSetName = '';
+            this.showToast(`Set '${name}' saved.`, 'success');
+            await this.refreshSets();
+          } catch (e) {
+            this.showToast('Save failed: ' + e.message, 'error');
+          }
+        },
+
+        async loadSet(name) {
+          try {
+            const data = await fetch(`/api/sets/${encodeURIComponent(name)}/load`).then(r => r.json());
+            this.opencodeConfig = data.opencode_config || { provider: {} };
+            if (!this.opencodeConfig.provider) this.opencodeConfig.provider = {};
+            this.omcConfig = data.oh_my_opencode_config || { model: '', agents: {}, categories: {} };
+            if (!this.omcConfig.agents) this.omcConfig.agents = {};
+            if (!this.omcConfig.categories) this.omcConfig.categories = {};
+            this.providerModels = {};
+            this.showToast(`Set '${name}' loaded into editor.`, 'success');
+            await this.fetchAllProviderModels();
+          } catch (e) {
+            this.showToast('Load failed: ' + e.message, 'error');
+          }
+        },
+
+        async applySet(name) {
+          try {
+            const resp = await fetch(`/api/sets/${encodeURIComponent(name)}/apply`, { method: 'POST' });
+            if (!resp.ok) throw new Error((await resp.json()).detail);
+            this.activeSetName = name;
+            this.showToast(`Set '${name}' applied to active configs.`, 'success');
+            await this.loadActiveConfigs();
+          } catch (e) {
+            this.showToast('Apply failed: ' + e.message, 'error');
+          }
+        },
+
+        async deleteSet(name) {
+          if (!confirm(`Delete config set '${name}'?`)) return;
+          try {
+            const resp = await fetch(`/api/sets/${encodeURIComponent(name)}`, { method: 'DELETE' });
+            if (!resp.ok) throw new Error((await resp.json()).detail);
+            this.showToast(`Set '${name}' deleted.`, 'success');
+            await this.refreshSets();
+          } catch (e) {
+            this.showToast('Delete failed: ' + e.message, 'error');
+          }
+        },
+
+        showToast(message, type = 'success') {
+          if (this.toast.timer) clearTimeout(this.toast.timer);
+          this.toast = { visible: true, message, type, timer: null };
+          this.toast.timer = setTimeout(() => { this.toast.visible = false; }, 4000);
+        },
+      };
+    }
+  </script>
+</body>
+</html>
