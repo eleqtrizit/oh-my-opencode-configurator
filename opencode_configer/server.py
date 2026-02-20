@@ -199,6 +199,22 @@ async def delete_set(name: str) -> dict[str, str]:
 
 
 # ---------------------------------------------------------------------------
+# Health check
+# ---------------------------------------------------------------------------
+
+
+@app.get("/api/health")
+async def health() -> dict[str, str]:
+    """
+    Liveness probe used by the launcher to detect when the server is ready.
+
+    :return: Static ready status.
+    :rtype: dict[str, str]
+    """
+    return {"status": "ok"}
+
+
+# ---------------------------------------------------------------------------
 # Root — serve the SPA
 # ---------------------------------------------------------------------------
 

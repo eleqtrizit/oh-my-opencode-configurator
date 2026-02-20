@@ -2,6 +2,8 @@
 
 Web UI for managing [opencode](https://opencode.ai) and [oh-my-opencode](https://github.com/lalalune/oh-my-opencode) configuration pairs.
 
+![Screenshot](docs/screenshot.png)
+
 ## Install
 
 ```bash
