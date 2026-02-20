@@ -702,15 +702,32 @@
 
         async applyNow() {
           try {
+            // Deep-clone so we don't mutate reactive state before the request succeeds
+            const configToApply = JSON.parse(JSON.stringify(this.opencodeConfig));
+
+            // For every provider we have a fresh model list for, remove any model
+            // from the config that is no longer offered by the /v1/models endpoint.
+            for (const [pName, fetchedModels] of Object.entries(this.providerModels)) {
+              if (!configToApply.provider?.[pName]?.models) continue;
+              const available = new Set(fetchedModels.map(m => m.id));
+              for (const mId of Object.keys(configToApply.provider[pName].models)) {
+                if (!available.has(mId)) {
+                  delete configToApply.provider[pName].models[mId];
+                }
+              }
+            }
+
             const resp = await fetch('/api/apply', {
               method: 'POST',
               headers: { 'Content-Type': 'application/json' },
               body: JSON.stringify({
-                opencode_config: this.opencodeConfig,
+                opencode_config: configToApply,
                 oh_my_opencode_config: this.omcConfig,
               }),
             });
             if (!resp.ok) throw new Error((await resp.json()).detail);
+            // Sync in-memory state to the cleaned version that was written to disk
+            this.opencodeConfig = configToApply;
             this.showToast('Configs applied to ~/.config/opencode/', 'success');
             await this.refreshSets();
             await this.fetchAllProviderModels();
