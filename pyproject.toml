@@ -1,0 +1,51 @@
+[project]
+name = "opencode-configer"
+version = "0.1.0"
+description = "Add your description here"
+readme = "README.md"
+requires-python = ">=3.11"
+dependencies = [
+    "autopep8>=2.3.2",
+    "flake8>=7.3.0",
+    "isort>=8.0.0",
+    "mypy>=1.19.1",
+    "rich>=14.3.3",
+]
+
+[dependency-groups]
+dev = [
+    "pytest>=9.0.2",
+    "pytest-cov>=7.0.0",
+]
+## LLM UPDATE THIS
+[project.scripts]
+name-of-app = "name-of-app.__main__:main"
+description = "UPDATE"
+
+readme = "README.md"
+requires-python = ">=3.11"
+
+[dependency-groups]
+dev = [
+    "pytest>=9.0.2",
+    "pytest-cov>=7.0.0",
+]
+
+[tool.pycodestyle]
+max-line-length = 120
+ignore = ["E251", "E221"]
+
+[tool.isort]
+include_trailing_comma = false
+use_parentheses = false
+line_length = 120
+
+[tool.coverage.run]
+omit = ["*/test/*"]
+
+[build-system]
+requires = ["setuptools"]
+build-backend = "setuptools.build_meta"
+
+[tool.uv]
+package = true
